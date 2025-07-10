@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 16  # Or your preferred Node.js version
+    commands:
+      # Add any install commands here, e.g., npm install
+      - echo "Installing dependencies..."
+      # Example for a Node.js project:
+      # - npm install
+  build:
+    commands:
+      # Add any build commands here, e.g., npm run build
+      - echo "Building the website..."
+      # Example for a Node.js project:
+      # - npm run build
+  post_build:
+    commands:
+      # Add any post-build commands here, e.g., copying files
+      - echo "Copying files to S3..."
+      - cp -r * .  # Copy all files to the root of the artifact
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: yes
