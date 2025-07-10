@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Meta tags (charset, viewport) -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mari’s Mexi Grill</title>
+  <meta name="description" content="Authentic Mexican a‑la‑carte in Winchester, Las Vegas. Explore our tacos, burritos, bowls & more!">
+  <!-- ##meta‑regex: /<meta name="keywords" content="(.*)">/ -->
+  <!-- Google Font: Gochi Hand -->
+  <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+  <!-- Stylesheet or style block scaffolding -->
+  <style>
+    /* -- Colors -- */
+    :root {
+      --bg-color: #000;
+      --text-color: #fff;
+      --accent-color: #f00;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Gochi Hand', cursive;
+    }
+
+    /* -- Grid Layout -- */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .menu-item {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      cursor: pointer; /* Add cursor pointer for better UX */
+    }
+
+    .menu-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .menu-item:hover img {
+      transform: scale(1.1);
+    }
+
+    .menu-item-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: var(--text-color);
+      padding: 10px;
+      text-align: center;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .menu-item:hover .menu-item-overlay {
+      transform: translateY(0);
+    }
+
+    /* -- Typography -- */
+    h1 {
+      font-size: 3em;
+      margin: 0;
+    }
+
+    h2 {
+      font-size: 2em;
+    }
+
+    /* -- Animations -- */
+    /* Add animation library here (e.g., AOS) or custom animations */
+  </style>
+</head>
+<body>
+  <!-- Hero Splash with title & social icons -->
+  <section class="hero">
+    <img src="/assets/images/hero.jpg" alt="Mari’s Mexi Grill" loading="lazy">
+    <div class="hero-content">
+      <h1>Mari’s Mexi Grill</h1>
+      <div class="social-icons">
+        <a href="<!-- ##facebook-url -->"><img src="/assets/images/facebook.png" alt="Facebook"></a>
+        <a href="<!-- ##instagram-url -->"><img src="/assets/images/instagram.png" alt="Instagram"></a>
+        <a href="<!-- ##yelp-url -->"><img src="/assets/images/yelp.png" alt="Yelp"></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Grid Portfolio of Menu Items -->
+  <!-- Categories: Carbs, Proteins, Drinks, Desserts -->
+  <section class="menu">
+    <h2>Our Menu</h2>
+    <div class="menu-grid">
+      <!-- Carbs -->
+      <div class="menu-item" data-category="carbs" data-price="8.99" data-veg="true" data-cals="400">
+        <img src="/assets/images/rice.jpg" alt="Rice" loading="lazy">
+        <h3>Rice</h3>
+        <div class="menu-item-overlay">
+          <p>$8.99</p>
+          <p>Fluffy white rice, perfect with any meal.</p>
+          <img src="/assets/images/vegetarian.png" alt="Vegetarian" width="20">
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="carbs" data-price="9.99" data-veg="false" data-cals="500">
+        <img src="/assets/images/quinoa.jpg" alt="Quinoa" loading="lazy">
+        <h3>Quinoa</h3>
+        <div class="menu-item-overlay">
+          <p>$9.99</p>
+          <p>Healthy and delicious quinoa bowl.</p>
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="carbs" data-price="10.99" data-veg="false" data-cals="600">
+        <img src="/assets/images/fried-rice.jpg" alt="Fried Rice" loading="lazy">
+        <h3>Fried Rice</h3>
+        <div class="menu-item-overlay">
+          <p>$10.99</p>
+          <p>Classic fried rice with vegetables and protein.</p>
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+
+      <!-- Proteins -->
+      <div class="menu-item" data-category="proteins" data-price="12.99" data-veg="false" data-cals="700">
+        <img src="/assets/images/soy.jpg" alt="Soy" loading="lazy">
+        <h3>Soy</h3>
+        <div class="menu-item-overlay">
+          <p>$12.99</p>
+          <p>Marinated and grilled soy.</p>
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="proteins" data-price="14.99" data-veg="false" data-cals="800">
+        <img src="/assets/images/beef.jpg" alt="Beef" loading="lazy">
+        <h3>Beef</h3>
+        <div class="menu-item-overlay">
+          <p>$14.99</p>
+          <p>Tender and flavorful beef.</p>
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+
+      <div class="menu-item" data-category="proteins" data-price="11.99" data-veg="false" data-cals="650">
+        <img src="/assets/images/chicken.jpg" alt="Chicken" loading="lazy">
+        <h3>Chicken</h3>
+        <div class="menu-item-overlay">
+          <p>$11.99</p>
+          <p>Grilled chicken breast.</p>
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+
+      <!-- Drinks -->
+      <div class="menu-item" data-category="drinks" data-price="2.99" data-veg="true" data-cals="100">
+        <img src="/assets/images/coke.jpg" alt="Coca-Cola" loading="lazy">
+        <h3>Coca-Cola</h3>
+        <div class="menu-item-overlay">
+          <p>$2.99</p>
+          <p>Classic Coca-Cola.</p>
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+
+      <!-- Desserts (Placeholder) -->
+      <div class="menu-item" data-category="desserts" data-price="5.99" data-veg="true" data-cals="300">
+        <img src="/assets/images/dessert.jpg" alt="Dessert" loading="lazy">
+        <h3>Dessert</h3>
+        <div class="menu-item-overlay">
+          <p>$5.99</p>
+          <p>Delicious dessert option.</p>
+          <img src="/assets/images/vegetarian.png" alt="Vegetarian" width="20">
+          <img src="/assets/images/calories.png" alt="Calories" width="20">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Template (hidden by default) -->
+  <div id="menu-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2></h2>
+      <p id="modal-description"></p>
+      <h3>Ingredients:</h3>
+      <ul id="modal-ingredients"></ul>
+      <button>Add to Cart</button>
+    </div>
+  </div>
+
+  <!-- Footer with contact info -->
+  <footer>
+    <p>Contact us: <a href="tel:<!-- ##phone-number -->"><!-- ##phone-number --></a></p>
+    <p>Address: <!-- ##address --></p>
+  </footer>
+
+  <!-- Scripts: data prefetch, animations, modals -->
+  <script>
+    // TODO: Prefetch menu JSON from /data/menu.json
+    // fetch('/data/menu.json')
+    //   .then(response => response.json())
+    //   .then(data => {
+    //     // Process menu data
+    //   });
+
+    // TODO: Initialize scroll‑fade animations
+    // AOS.init(); // Example using AOS library
+
+    // TODO: Modal open/close handlers
+    const modal = document.getElementById("menu-modal");
+    const menuItems = document.querySelectorAll(".menu-item");
+
+    menuItems.forEach(item => {
+      item.addEventListener("click", (event) => {
+        const title = item.querySelector("h3").textContent;
+        const price = item.dataset.price;
+        const description = "This is a placeholder description."; // Replace with actual description
+        const ingredients = ["Ingredient 1", "Ingredient 2"]; // Replace with actual ingredients
+
+        document.querySelector("#menu-modal h2").textContent = title;
+        document.getElementById("modal-description").textContent = description;
+
+        const ingredientsList = document.getElementById("modal-ingredients");
+        ingredientsList.innerHTML = "";
+        ingredients.forEach(ingredient => {
+          const li = document.createElement("li");
+          li.textContent = ingredient;
+          ingredientsList.appendChild(li);
+        });
+
+        modal.style.display = "block";
+      });
+    });
+
+    document.querySelector(".close").addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    window.onclick = (event) => {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>
