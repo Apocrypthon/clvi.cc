@@ -47,7 +47,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 
 ## GET /player/state
 
-Fetches the player profile, current inventory, and cooldowns. Use this after login, after collect/recycle calls, or when resuming a session.
+Fetches the player's aggregate action totals. Use this after login, after collect/recycle calls, or when resuming a session.
 
 ```gdscript
 var headers := [
@@ -55,28 +55,17 @@ var headers := [
     "X-Session-Id: %s" % session_id,
     "Accept: application/json"
 ]
-http.request("%s/player/state" % base_url, headers, HTTPClient.METHOD_GET)
+var query := "?player_id=%s" % player_id # optional; defaults to session player
+http.request("%s/player/state%s" % [base_url, query], headers, HTTPClient.METHOD_GET)
 ```
 
 **Sample response (200):**
 
 ```json
 {
-  "player": {
-    "id": "player_123",
-    "display_name": "Jordan",
-    "level": 4,
-    "xp": 1230,
-    "energy": 82
-  },
-  "inventory": [
-    { "id": "battery", "label": "Battery", "quantity": 3, "rarity": "common" },
-    { "id": "plastic", "label": "Plastic", "quantity": 5, "rarity": "common" }
-  ],
-  "cooldowns": {
-    "collect_until": "2024-07-01T12:04:30Z",
-    "recycle_until": null
-  }
+  "player_id": "player_123",
+  "collected_total": 12,
+  "recycled_total": 7
 }
 ```
 
@@ -84,19 +73,15 @@ http.request("%s/player/state" % base_url, headers, HTTPClient.METHOD_GET)
 
 ```gdscript
 var state := parsed
-name_label.text = state.player.display_name
-xp_bar.value = float(state.player.xp)
-energy_bar.value = float(state.player.energy)
-inventory_list.clear()
-for item in state.inventory:
-    inventory_list.add_item("%s x%s" % [item.label, item.quantity])
+collected_label.text = str(state.collected_total)
+recycled_label.text = str(state.recycled_total)
 ```
 
-Use `cooldowns.collect_until`/`recycle_until` to gray out UI buttons until the timestamp is in the past.
+If you omit `player_id`, the server will resolve it using the session. Include it when you need to fetch another player's totals.
 
-## POST /collect
+## POST /action/collect
 
-Collects an item from the world and returns the updated state.
+Collects a resource and returns the action response summary.
 
 ```gdscript
 var idempotency_key := UUID.v4()
@@ -108,25 +93,22 @@ var headers := [
     "Idempotency-Key: %s" % idempotency_key # reuse on retry
 ]
 var body := {
-    "node_id": "trash_can_7",
-    "item_id": "battery",
-    "quantity": 1
+    "resource": "battery",
+    "amount": 1,
+    "player_id": "player_123" # optional; defaults to session player
 }
-http.request("%s/collect" % base_url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
+http.request("%s/action/collect" % base_url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
 ```
 
 **Successful response (200/201):**
 
 ```json
 {
-  "status": "collected",
-  "granted": { "id": "battery", "quantity": 1 },
-  "state": {
-    "inventory": [
-      { "id": "battery", "label": "Battery", "quantity": 4 }
-    ],
-    "cooldowns": { "collect_until": "2024-07-01T12:04:30Z" }
-  }
+  "player_id": "player_123",
+  "action": "collect",
+  "resource": "battery",
+  "amount": 1,
+  "status": "ok"
 }
 ```
 
@@ -135,11 +117,11 @@ http.request("%s/collect" % base_url, headers, HTTPClient.METHOD_POST, JSON.stri
 * `409 Conflict` with `{ "error": "collect_cooldown_active", "retry_after_ms": 1200 }`.
 * `400 Bad Request` with `{ "error": "invalid_node_id" }`.
 
-After a success, refresh UI with the nested `state` block (same shape as `/player/state`). On `409`, wait for `retry_after_ms` or the cooldown timestamp before retrying.
+After a success, refresh UI by calling `/player/state`. On `409`, wait for `retry_after_ms` before retrying.
 
-## POST /recycle
+## POST /action/recycle
 
-Recycles items and returns rewards plus the updated state.
+Recycles resources and returns the action response summary.
 
 ```gdscript
 var recycle_key := UUID.v4()
@@ -151,26 +133,22 @@ var headers := [
     "Idempotency-Key: %s" % recycle_key # reuse if you retry
 ]
 var body := {
-    "item_id": "battery",
-    "quantity": 2,
-    "location_id": "station_a"
+    "resource": "battery",
+    "amount": 2,
+    "player_id": "player_123" # optional; defaults to session player
 }
-http.request("%s/recycle" % base_url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
+http.request("%s/action/recycle" % base_url, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
 ```
 
 **Successful response (200/201):**
 
 ```json
 {
-  "status": "recycled",
-  "rewards": { "xp": 40, "tokens": 5 },
-  "state": {
-    "inventory": [
-      { "id": "battery", "label": "Battery", "quantity": 2 },
-      { "id": "token", "label": "Token", "quantity": 5 }
-    ],
-    "cooldowns": { "recycle_until": "2024-07-01T12:06:00Z" }
-  }
+  "player_id": "player_123",
+  "action": "recycle",
+  "resource": "battery",
+  "amount": 2,
+  "status": "ok"
 }
 ```
 
