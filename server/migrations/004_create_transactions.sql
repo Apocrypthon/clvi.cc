@@ -1,7 +1,7 @@
 -- Record collection and recycling events
 CREATE TABLE IF NOT EXISTS transactions (
     id BIGSERIAL PRIMARY KEY,
-    player_id BIGINT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    player_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     litter_type_id INTEGER NOT NULL REFERENCES litter_types(id),
     inventory_id BIGINT REFERENCES inventories(id) ON DELETE SET NULL,
     transaction_type TEXT NOT NULL CHECK (transaction_type IN ('collect', 'recycle')),
