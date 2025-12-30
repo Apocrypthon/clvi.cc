@@ -11,6 +11,7 @@ mod errors;
 mod middleware;
 mod routes;
 mod state;
+mod models;
 
 use crate::{config::AppConfig, errors::AppError, middleware as app_middleware, state::AppState};
 
