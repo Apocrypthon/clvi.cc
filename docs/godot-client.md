@@ -1,6 +1,6 @@
 # Godot client calls to the clvi.cc API
 
-These notes describe how to call the server endpoints from Godot using an `HTTPRequest` node. The examples assume the backend is reachable at `http://localhost:3001/api` and that you already have an auth token and session identifier for the current player.
+These notes describe how to call the server endpoints from Godot using an `HTTPRequest` node. The examples assume the backend is reachable at `http://localhost:3001/api` and that you already have a player UUID for the current player.
 
 ```gdscript
 const base_url := "http://localhost:3001/api"
@@ -29,8 +29,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 
 ### Required headers
 
-* `Authorization: Bearer <auth_token>` — required for all endpoints.
-* `X-Session-Id: <session_id>` — required to bind requests to a player session.
+* `x-player-id: <uuid>` — required for all endpoints to identify the player.
 * `Content-Type: application/json` and `Accept: application/json`.
 * For idempotent POST retries, include `Idempotency-Key: <uuid>` (see retries section).
 
@@ -51,8 +50,7 @@ Fetches the player's aggregate action totals. Use this after login, after collec
 
 ```gdscript
 var headers := [
-    "Authorization: Bearer %s" % auth_token,
-    "X-Session-Id: %s" % session_id,
+    "x-player-id: %s" % player_id,
     "Accept: application/json"
 ]
 var query := "?player_id=%s" % player_id # optional; defaults to session player
@@ -86,8 +84,7 @@ Collects a resource and returns the action response summary.
 ```gdscript
 var idempotency_key := UUID.v4()
 var headers := [
-    "Authorization: Bearer %s" % auth_token,
-    "X-Session-Id: %s" % session_id,
+    "x-player-id: %s" % player_id,
     "Content-Type: application/json",
     "Accept: application/json",
     "Idempotency-Key: %s" % idempotency_key # reuse on retry
@@ -126,8 +123,7 @@ Recycles resources and returns the action response summary.
 ```gdscript
 var recycle_key := UUID.v4()
 var headers := [
-    "Authorization: Bearer %s" % auth_token,
-    "X-Session-Id: %s" % session_id,
+    "x-player-id: %s" % player_id,
     "Content-Type: application/json",
     "Accept: application/json",
     "Idempotency-Key: %s" % recycle_key # reuse if you retry
