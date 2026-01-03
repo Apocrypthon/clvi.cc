@@ -1,5 +1,5 @@
 use axum::{
-    middleware,
+    middleware as axum_middleware,
     routing::{get, post},
     Router,
 };
@@ -31,7 +31,7 @@ async fn main() -> Result<(), AppError> {
     let app = Router::new()
         .merge(routes::router())
         .with_state(state)
-        .layer(middleware::from_fn(app_middleware::session_middleware));
+        .layer(axum_middleware::from_fn(app_middleware::session_middleware));
 
     let address = format!("0.0.0.0:{}", config.server_port);
     tracing::info!("listening on {address}");

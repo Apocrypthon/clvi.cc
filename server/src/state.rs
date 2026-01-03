@@ -1,4 +1,4 @@
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::{PgPool, Postgres, Transaction, FromRow};
 use uuid::Uuid;
 
 use crate::models::Player;
@@ -47,8 +47,7 @@ impl AppState {
     }
 
     pub async fn get_leaderboard(&self) -> Result<Vec<Player>, sqlx::Error> {
-        let rows = sqlx::query_as!(
-            Player,
+        let rows = sqlx::query_as::<_, Player>(
             "SELECT id, username, wallet_address, guardian_tokens_completed, skill_rating, last_login \
              FROM players \
              ORDER BY guardian_tokens_completed DESC, skill_rating DESC \
@@ -61,12 +60,17 @@ impl AppState {
     }
 }
 
+#[derive(FromRow)]
+struct GuardianTokenRow {
+    is_completed: Option<bool>,
+}
+
 async fn update_guardian_token(
     tx: &mut Transaction<'_, Postgres>,
     token_increment: f64,
     player_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    let record = sqlx::query!(
+    let record = sqlx::query_as::<_, GuardianTokenRow>(
         "WITH target AS (
             SELECT id, current_progress
             FROM guardian_tokens
@@ -81,9 +85,9 @@ async fn update_guardian_token(
              is_completed = CASE WHEN current_progress + $1 >= 1.0 THEN true ELSE false END
          WHERE id IN (SELECT id FROM target)
          RETURNING is_completed",
-        token_increment,
-        player_id
     )
+    .bind(token_increment)
+    .bind(player_id)
     .fetch_optional(&mut **tx)
     .await?;
 
@@ -96,15 +100,15 @@ async fn update_player_stats(
     token_completed: bool,
 ) -> Result<(), sqlx::Error> {
     let token_delta = if token_completed { 1 } else { 0 };
-    sqlx::query!(
+    sqlx::query(
         "UPDATE players SET \
             guardian_tokens_completed = guardian_tokens_completed + $2, \
             skill_rating = skill_rating + 0.1, \
             last_login = NOW() \
          WHERE id = $1",
-        player_id,
-        token_delta
     )
+    .bind(player_id)
+    .bind(token_delta)
     .execute(&mut **tx)
     .await?;
 
@@ -115,14 +119,15 @@ async fn validate_trash_item(
     tx: &mut Transaction<'_, Postgres>,
     item_id: i64,
 ) -> Result<(), sqlx::Error> {
-    let exists = sqlx::query_scalar!(
-        "SELECT EXISTS(SELECT 1 FROM trash_items WHERE id = $1) as \"exists!\"",
-        item_id
+    // We can just check if any row exists
+    let exists: (bool,) = sqlx::query_as(
+        "SELECT EXISTS(SELECT 1 FROM trash_items WHERE id = $1) as \"exists\"",
     )
+    .bind(item_id)
     .fetch_one(&mut **tx)
     .await?;
 
-    if exists {
+    if exists.0 {
         Ok(())
     } else {
         Err(sqlx::Error::RowNotFound)

@@ -1,4 +1,8 @@
-use axum::{http::Request, response::Response};
+use axum::{
+    extract::Request,
+    middleware::Next,
+    response::Response,
+};
 use uuid::Uuid;
 
 use crate::errors::AppError;
@@ -14,9 +18,9 @@ impl Session {
     }
 }
 
-pub async fn session_middleware<B>(
-    mut req: Request<B>,
-    next: axum::middleware::Next<B>,
+pub async fn session_middleware(
+    mut req: Request,
+    next: Next,
 ) -> Result<Response, AppError> {
     let player_id = req
         .headers()
