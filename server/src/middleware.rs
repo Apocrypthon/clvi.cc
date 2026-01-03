@@ -1,7 +1,11 @@
-use axum::{http::Request, response::Response};
+use axum::{
+    extract::{Request, State},
+    middleware::Next,
+    response::Response,
+};
 use uuid::Uuid;
 
-use crate::errors::AppError;
+use crate::{auth, config::AppConfig, errors::AppError};
 
 #[derive(Debug, Clone)]
 pub struct Session {
@@ -14,17 +18,33 @@ impl Session {
     }
 }
 
-pub async fn session_middleware<B>(
-    mut req: Request<B>,
-    next: axum::middleware::Next<B>,
+pub async fn session_middleware(
+    State(config): State<AppConfig>,
+    mut req: Request,
+    next: Next,
 ) -> Result<Response, AppError> {
-    let player_id = req
+    let auth_header = req
         .headers()
-        .get("x-player-id")
-        .and_then(|value| value.to_str().ok())
-        .map(|value| Uuid::parse_str(value))
-        .transpose()
-        .map_err(|_| AppError::Unauthorized)?;
+        .get("Authorization")
+        .and_then(|value| value.to_str().ok());
+
+    let player_id = if let Some(auth_header) = auth_header {
+        if let Some(token) = auth_header.strip_prefix("Bearer ") {
+            let claims = auth::decode_token(token, &config.jwt_secret);
+            match claims {
+                Ok(claims) => Some(claims.sub),
+                Err(_) => None, // Token invalid, treated as anonymous
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Fallback to legacy header for compatibility if needed, or remove it.
+    // The requirement says "Issue JWT session token", implying we move to JWT.
+    // I will disable the legacy header to be secure.
 
     req.extensions_mut().insert(Session::new(player_id));
     let response = next.run(req).await;

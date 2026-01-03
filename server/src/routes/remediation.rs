@@ -21,7 +21,7 @@ pub struct RemediationResponse {
 
 #[derive(Debug, Serialize)]
 pub struct LeaderboardResponse {
-    pub players: Vec<crate::models::Player>,
+    pub players: Vec<crate::models::LeaderboardPlayer>,
 }
 
 pub async fn process(

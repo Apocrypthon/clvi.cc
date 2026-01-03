@@ -2,3 +2,4 @@ target/
 **/target/
 **/*.env
 **/.env
+backend/node_modules/

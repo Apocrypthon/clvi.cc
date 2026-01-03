@@ -13,7 +13,13 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/action/collect", post(action::collect))
         .route("/action/recycle", post(action::recycle))
+        .route("/player", post(player::create))
+        .route("/player/login", post(player::login))
+        .route("/player/refresh", post(player::refresh))
+        .route("/player/revoke", post(player::revoke))
+        .route("/player/verify", post(player::verify_email))
         .route("/player/state", get(player::state))
+        .route("/user", get(player::get_current_user))
         .route("/remediation/process", post(remediation::process))
         .route("/leaderboard", get(remediation::leaderboard))
 }

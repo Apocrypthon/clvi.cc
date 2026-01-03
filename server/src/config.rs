@@ -6,6 +6,7 @@ use crate::errors::AppError;
 pub struct AppConfig {
     pub database_url: String,
     pub server_port: u16,
+    pub jwt_secret: String,
 }
 
 impl AppConfig {
@@ -19,9 +20,12 @@ impl AppConfig {
             .transpose()?
             .unwrap_or(3000);
 
+        let jwt_secret = env::var("JWT_SECRET").map_err(|_| AppError::MissingConfig("JWT_SECRET".into()))?;
+
         Ok(Self {
             database_url,
             server_port,
+            jwt_secret,
         })
     }
 }
