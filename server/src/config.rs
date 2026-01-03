@@ -20,7 +20,7 @@ impl AppConfig {
             .transpose()?
             .unwrap_or(3000);
 
-        let jwt_secret = env::var("JWT_SECRET").unwrap_or_else(|_| "secret".into());
+        let jwt_secret = env::var("JWT_SECRET").map_err(|_| AppError::MissingConfig("JWT_SECRET".into()))?;
 
         Ok(Self {
             database_url,

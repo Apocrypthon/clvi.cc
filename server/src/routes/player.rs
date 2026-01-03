@@ -107,7 +107,7 @@ async fn create_refresh_token(pool: &PgPool, player_id: Uuid) -> Result<String, 
 
     sqlx::query(
         "INSERT INTO refresh_tokens (token_hash, player_id, expires_at)
-         VALUES (digest($1, 'sha256'), $2, NOW() + INTERVAL '30 days')"
+         VALUES (encode(digest($1, 'sha256'), 'hex'), $2, NOW() + INTERVAL '30 days')"
     )
     .bind(&refresh_token)
     .bind(player_id)
@@ -221,7 +221,7 @@ pub async fn refresh(
     let row = sqlx::query_as::<_, RefreshTokenRow>(
         r#"
         DELETE FROM refresh_tokens
-        WHERE token_hash = digest($1, 'sha256')
+        WHERE token_hash = encode(digest($1, 'sha256'), 'hex')
         AND expires_at > NOW()
         RETURNING player_id
         "#
@@ -239,6 +239,20 @@ pub async fn refresh(
         token,
         refresh_token,
     }))
+}
+
+pub async fn revoke(
+    State(state): State<AppState>,
+    Json(payload): Json<RefreshTokenRequest>,
+) -> Result<(), AppError> {
+    sqlx::query(
+        "DELETE FROM refresh_tokens WHERE token_hash = encode(digest($1, 'sha256'), 'hex')"
+    )
+    .bind(&payload.refresh_token)
+    .execute(&state.db_pool)
+    .await?;
+
+    Ok(())
 }
 
 pub async fn verify_email(
