@@ -16,6 +16,27 @@ pub struct Player {
 }
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
+pub struct User {
+    pub id: Uuid,
+    pub username: String,
+    pub email: Option<String>,
+    pub is_email_verified: bool,
+    pub wallet_address: Option<String>,
+}
+
+impl From<Player> for User {
+    fn from(player: Player) -> Self {
+        Self {
+            id: player.id,
+            username: player.username,
+            email: player.email,
+            is_email_verified: player.is_email_verified,
+            wallet_address: player.wallet_address,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct LeaderboardPlayer {
     pub id: Uuid,
     pub username: String,

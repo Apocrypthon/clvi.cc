@@ -19,6 +19,7 @@ pub fn router() -> Router<AppState> {
         .route("/player/revoke", post(player::revoke))
         .route("/player/verify", post(player::verify_email))
         .route("/player/state", get(player::state))
+        .route("/user", get(player::get_current_user))
         .route("/remediation/process", post(remediation::process))
         .route("/leaderboard", get(remediation::leaderboard))
 }

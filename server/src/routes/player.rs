@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
-use crate::{auth, errors::AppError, middleware::Session, state::AppState};
+use crate::{auth, errors::AppError, middleware::Session, state::AppState, models::User};
 
 #[derive(Debug, Deserialize)]
 pub struct PlayerStateQuery {
@@ -321,4 +321,23 @@ pub async fn state(
         collected_total: row.collected_total.unwrap_or_default(),
         recycled_total: row.recycled_total.unwrap_or_default(),
     }))
+}
+
+pub async fn get_current_user(
+    State(state): State<AppState>,
+    Extension(session): Extension<Session>,
+) -> Result<Json<User>, AppError> {
+    let player_id = session
+        .player_id
+        .ok_or(AppError::Unauthorized)?;
+
+    let row = sqlx::query_as::<_, User>(
+        "SELECT id, username, email, is_email_verified, wallet_address FROM players WHERE id = $1"
+    )
+    .bind(player_id)
+    .fetch_optional(&state.db_pool)
+    .await?
+    .ok_or(AppError::NotFound("User not found".to_string()))?;
+
+    Ok(Json(row))
 }
