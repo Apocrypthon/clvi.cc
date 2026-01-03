@@ -15,6 +15,7 @@ pub fn router() -> Router<AppState> {
         .route("/action/recycle", post(action::recycle))
         .route("/player", post(player::create))
         .route("/player/login", post(player::login))
+        .route("/player/verify", post(player::verify_email))
         .route("/player/state", get(player::state))
         .route("/remediation/process", post(remediation::process))
         .route("/leaderboard", get(remediation::leaderboard))

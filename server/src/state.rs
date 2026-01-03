@@ -1,7 +1,7 @@
 use sqlx::{PgPool, Postgres, Transaction, FromRow};
 use uuid::Uuid;
 
-use crate::models::Player;
+use crate::models::{LeaderboardPlayer, Player};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -46,8 +46,8 @@ impl AppState {
         Ok(token_increment)
     }
 
-    pub async fn get_leaderboard(&self) -> Result<Vec<Player>, sqlx::Error> {
-        let rows = sqlx::query_as::<_, Player>(
+    pub async fn get_leaderboard(&self) -> Result<Vec<LeaderboardPlayer>, sqlx::Error> {
+        let rows = sqlx::query_as::<_, LeaderboardPlayer>(
             "SELECT id, username, wallet_address, guardian_tokens_completed, skill_rating, last_login \
              FROM players \
              ORDER BY guardian_tokens_completed DESC, skill_rating DESC \

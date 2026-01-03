@@ -27,6 +27,8 @@ struct PlayerStateRow {
 #[derive(Debug, Deserialize)]
 pub struct CreatePlayerRequest {
     pub username: String,
+    pub email: Option<String>,
+    pub password: String,
     pub display_name: Option<String>,
     pub wallet_address: Option<String>,
 }
@@ -35,6 +37,8 @@ pub struct CreatePlayerRequest {
 pub struct CreatePlayerResponse {
     pub id: Uuid,
     pub username: String,
+    pub email: Option<String>,
+    pub is_email_verified: bool,
     pub display_name: Option<String>,
     pub wallet_address: Option<String>,
 }
@@ -42,6 +46,7 @@ pub struct CreatePlayerResponse {
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
     pub username: String,
+    pub password: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -50,10 +55,23 @@ pub struct LoginResponse {
     pub username: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct VerifyEmailRequest {
+    pub token: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct VerifyEmailResponse {
+    pub success: bool,
+    pub message: String,
+}
+
 #[derive(Debug, FromRow)]
 struct CreatePlayerRow {
     id: Uuid,
     username: String,
+    email: Option<String>,
+    is_email_verified: bool,
     display_name: Option<String>,
     wallet_address: Option<String>,
 }
@@ -68,22 +86,47 @@ pub async fn create(
     State(state): State<AppState>,
     Json(payload): Json<CreatePlayerRequest>,
 ) -> Result<Json<CreatePlayerResponse>, AppError> {
+    let verification_token = if payload.email.is_some() {
+        Some(Uuid::new_v4().to_string())
+    } else {
+        None
+    };
+
+    if let Some(token) = &verification_token {
+        tracing::info!("Generated verification token for {}: {}", payload.username, token);
+    }
+
     let row = sqlx::query_as::<_, CreatePlayerRow>(
         r#"
-        INSERT INTO players (username, display_name, wallet_address)
-        VALUES ($1, $2, $3)
-        RETURNING id, username, display_name, wallet_address
+        INSERT INTO players (username, email, password_hash, display_name, wallet_address, email_verification_token, email_verification_sent_at)
+        VALUES (
+            $1,
+            $2,
+            crypt($3, gen_salt('bf')),
+            $4,
+            $5,
+            $6,
+            CASE WHEN $6 IS NOT NULL THEN NOW() ELSE NULL END
+        )
+        RETURNING id, username, email, is_email_verified, display_name, wallet_address
         "#
     )
     .bind(&payload.username)
+    .bind(&payload.email)
+    .bind(&payload.password)
     .bind(&payload.display_name)
     .bind(&payload.wallet_address)
+    .bind(&verification_token)
     .fetch_one(&state.db_pool)
     .await
     .map_err(|e| {
-        // Handle unique constraint violation on username
+        // Handle unique constraint violation
         if let Some(db_error) = e.as_database_error() {
              if db_error.code().as_deref() == Some("23505") { // Unique violation
+                 let constraint = db_error.constraint().unwrap_or("unknown");
+                 if constraint.contains("email") {
+                     return AppError::Conflict(format!("Email '{:?}' already taken", payload.email));
+                 }
                  return AppError::Conflict(format!("Username '{}' already taken", payload.username));
              }
         }
@@ -93,6 +136,8 @@ pub async fn create(
     Ok(Json(CreatePlayerResponse {
         id: row.id,
         username: row.username,
+        email: row.email,
+        is_email_verified: row.is_email_verified,
         display_name: row.display_name,
         wallet_address: row.wallet_address,
     }))
@@ -103,17 +148,55 @@ pub async fn login(
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, AppError> {
     let row = sqlx::query_as::<_, LoginRow>(
-        "SELECT id, username FROM players WHERE username = $1",
+        r#"
+        SELECT id, username
+        FROM players
+        WHERE username = $1
+        AND password_hash IS NOT NULL
+        AND password_hash = crypt($2, password_hash)
+        "#,
     )
     .bind(payload.username)
+    .bind(payload.password)
     .fetch_optional(&state.db_pool)
     .await?
-    .ok_or(AppError::NotFound("Player not found".to_string()))?;
+    .ok_or(AppError::Unauthorized)?;
 
     Ok(Json(LoginResponse {
         id: row.id,
         username: row.username,
     }))
+}
+
+pub async fn verify_email(
+    State(state): State<AppState>,
+    Json(payload): Json<VerifyEmailRequest>,
+) -> Result<Json<VerifyEmailResponse>, AppError> {
+    let result = sqlx::query(
+        r#"
+        UPDATE players
+        SET is_email_verified = TRUE,
+            email_verification_token = NULL
+        WHERE email_verification_token = $1
+        AND email_verification_sent_at > NOW() - INTERVAL '24 hours'
+        RETURNING id
+        "#
+    )
+    .bind(&payload.token)
+    .fetch_optional(&state.db_pool)
+    .await?;
+
+    if result.is_some() {
+        Ok(Json(VerifyEmailResponse {
+            success: true,
+            message: "Email verified successfully".to_string(),
+        }))
+    } else {
+        Ok(Json(VerifyEmailResponse {
+            success: false,
+            message: "Invalid or expired verification token".to_string(),
+        }))
+    }
 }
 
 pub async fn state(
