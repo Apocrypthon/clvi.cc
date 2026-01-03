@@ -6,6 +6,7 @@ use axum::{
 use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod auth;
 mod config;
 mod errors;
 mod middleware;
@@ -26,12 +27,12 @@ async fn main() -> Result<(), AppError> {
         .connect(&config.database_url)
         .await?;
 
-    let state = AppState::new(pool);
+    let state = AppState::new(pool, config.clone());
 
     let app = Router::new()
         .merge(routes::router())
         .with_state(state)
-        .layer(axum_middleware::from_fn(app_middleware::session_middleware));
+        .layer(axum_middleware::from_fn_with_state(config.clone(), app_middleware::session_middleware));
 
     let address = format!("0.0.0.0:{}", config.server_port);
     tracing::info!("listening on {address}");

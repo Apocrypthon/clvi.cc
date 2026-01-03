@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::{errors::AppError, middleware::Session, state::AppState};
+use crate::{auth, errors::AppError, middleware::Session, state::AppState};
 
 #[derive(Debug, Deserialize)]
 pub struct PlayerStateQuery {
@@ -41,6 +41,7 @@ pub struct CreatePlayerResponse {
     pub is_email_verified: bool,
     pub display_name: Option<String>,
     pub wallet_address: Option<String>,
+    pub token: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,6 +54,7 @@ pub struct LoginRequest {
 pub struct LoginResponse {
     pub id: Uuid,
     pub username: String,
+    pub token: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -133,6 +135,8 @@ pub async fn create(
         AppError::Database(e)
     })?;
 
+    let token = auth::encode_token(row.id, &state.config.jwt_secret)?;
+
     Ok(Json(CreatePlayerResponse {
         id: row.id,
         username: row.username,
@@ -140,6 +144,7 @@ pub async fn create(
         is_email_verified: row.is_email_verified,
         display_name: row.display_name,
         wallet_address: row.wallet_address,
+        token,
     }))
 }
 
@@ -162,9 +167,12 @@ pub async fn login(
     .await?
     .ok_or(AppError::Unauthorized)?;
 
+    let token = auth::encode_token(row.id, &state.config.jwt_secret)?;
+
     Ok(Json(LoginResponse {
         id: row.id,
         username: row.username,
+        token,
     }))
 }
 

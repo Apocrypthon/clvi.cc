@@ -1,16 +1,17 @@
 use sqlx::{PgPool, Postgres, Transaction, FromRow};
 use uuid::Uuid;
 
-use crate::models::{LeaderboardPlayer, Player};
+use crate::{config::AppConfig, models::{LeaderboardPlayer, Player}};
 
 #[derive(Clone)]
 pub struct AppState {
     pub db_pool: PgPool,
+    pub config: AppConfig,
 }
 
 impl AppState {
-    pub fn new(db_pool: PgPool) -> Self {
-        Self { db_pool }
+    pub fn new(db_pool: PgPool, config: AppConfig) -> Self {
+        Self { db_pool, config }
     }
 
     pub async fn process_remediation(
