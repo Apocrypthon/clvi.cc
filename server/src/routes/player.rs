@@ -1,6 +1,6 @@
 use axum::{extract::State, Extension, Json, extract::Query};
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
 use crate::{auth, errors::AppError, middleware::Session, state::AppState};
@@ -42,6 +42,7 @@ pub struct CreatePlayerResponse {
     pub display_name: Option<String>,
     pub wallet_address: Option<String>,
     pub token: String,
+    pub refresh_token: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,6 +56,7 @@ pub struct LoginResponse {
     pub id: Uuid,
     pub username: String,
     pub token: String,
+    pub refresh_token: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -66,6 +68,17 @@ pub struct VerifyEmailRequest {
 pub struct VerifyEmailResponse {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RefreshTokenRequest {
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RefreshTokenResponse {
+    pub token: String,
+    pub refresh_token: String,
 }
 
 #[derive(Debug, FromRow)]
@@ -82,6 +95,26 @@ struct CreatePlayerRow {
 struct LoginRow {
     id: Uuid,
     username: String,
+}
+
+#[derive(Debug, FromRow)]
+struct RefreshTokenRow {
+    player_id: Uuid,
+}
+
+async fn create_refresh_token(pool: &PgPool, player_id: Uuid) -> Result<String, AppError> {
+    let refresh_token = Uuid::new_v4().to_string().replace("-", ""); // Simple random string
+
+    sqlx::query(
+        "INSERT INTO refresh_tokens (token_hash, player_id, expires_at)
+         VALUES (digest($1, 'sha256'), $2, NOW() + INTERVAL '30 days')"
+    )
+    .bind(&refresh_token)
+    .bind(player_id)
+    .execute(pool)
+    .await?;
+
+    Ok(refresh_token)
 }
 
 pub async fn create(
@@ -136,6 +169,7 @@ pub async fn create(
     })?;
 
     let token = auth::encode_token(row.id, &state.config.jwt_secret)?;
+    let refresh_token = create_refresh_token(&state.db_pool, row.id).await?;
 
     Ok(Json(CreatePlayerResponse {
         id: row.id,
@@ -145,6 +179,7 @@ pub async fn create(
         display_name: row.display_name,
         wallet_address: row.wallet_address,
         token,
+        refresh_token,
     }))
 }
 
@@ -168,11 +203,41 @@ pub async fn login(
     .ok_or(AppError::Unauthorized)?;
 
     let token = auth::encode_token(row.id, &state.config.jwt_secret)?;
+    let refresh_token = create_refresh_token(&state.db_pool, row.id).await?;
 
     Ok(Json(LoginResponse {
         id: row.id,
         username: row.username,
         token,
+        refresh_token,
+    }))
+}
+
+pub async fn refresh(
+    State(state): State<AppState>,
+    Json(payload): Json<RefreshTokenRequest>,
+) -> Result<Json<RefreshTokenResponse>, AppError> {
+    // 1. Find valid token
+    let row = sqlx::query_as::<_, RefreshTokenRow>(
+        r#"
+        DELETE FROM refresh_tokens
+        WHERE token_hash = digest($1, 'sha256')
+        AND expires_at > NOW()
+        RETURNING player_id
+        "#
+    )
+    .bind(&payload.refresh_token)
+    .fetch_optional(&state.db_pool)
+    .await?
+    .ok_or(AppError::Unauthorized)?;
+
+    // 2. Issue new pair
+    let token = auth::encode_token(row.player_id, &state.config.jwt_secret)?;
+    let refresh_token = create_refresh_token(&state.db_pool, row.player_id).await?;
+
+    Ok(Json(RefreshTokenResponse {
+        token,
+        refresh_token,
     }))
 }
 
